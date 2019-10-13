@@ -1,10 +1,9 @@
-const passport = require("passport");
-const GoogleStrategy = require("passport-google-oauth20").Strategy;
-const GithubStrategy = require("passport-github").Strategy;
-const mongoose = require("mongoose");
-const keys = require("../config/keys");
+const passport = require('passport');
+const GoogleStrategy = require('passport-google-oauth20').Strategy;
+const mongoose = require('mongoose');
+const keys = require('../config/keys');
 
-const User = mongoose.model("users");
+const User = mongoose.model('users');
 
 passport.serializeUser((user, done) => {
   done(null, user.id);
@@ -21,45 +20,16 @@ passport.use(
     {
       clientID: keys.googleClientID,
       clientSecret: keys.googleClientSecret,
-      callbackURL: "/auth/google/callback",
-      proxy: true
+      callbackURL: '/auth/google/callback',
+      proxy: true,
     },
-    (accessToken, refreshToken, profile, done) => {
-      User.findOne({ userID: profile.id, accountType: "Google" }).then(
-        existingUser => {
-          if (existingUser) {
-            done(null, existingUser);
-          } else {
-            new User({ userID: profile.id, accountType: "Google" })
-              .save()
-              .then(user => done(null, user));
-          }
-        }
-      );
-    }
-  )
-);
-
-passport.use(
-  new GithubStrategy(
-    {
-      clientID: keys.githubClientID,
-      clientSecret: keys.githubClientSecret,
-      callbackURL: "/auth/github/callback",
-      proxy: true
+    async (accessToken, refreshToken, profile, done) => {
+      const existingUser = await User.findOne({ userID: profile.id });
+      if (existingUser) {
+        return done(null, existingUser);
+      }
+      const user = await new User({ userID: profile.id }).save();
+      done(null, user);
     },
-    (accessToken, refreshToken, profile, done) => {
-      User.findOne({ userID: profile.id, accountType: "Github" }).then(
-        existingUser => {
-          if (existingUser) {
-            done(null, existingUser);
-          } else {
-            new User({ userID: profile.id, accountType: "Github" })
-              .save()
-              .then(user => done(null, user));
-          }
-        }
-      );
-    }
-  )
+  ),
 );
